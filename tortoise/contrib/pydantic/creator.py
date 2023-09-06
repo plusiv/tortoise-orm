@@ -198,7 +198,16 @@ def pydantic_model_creator(
     meta = getattr(cls, "PydanticMeta", PydanticMeta)
 
     def get_param(attr: str) -> Any:
+        """Get parameter from PydanticMeta or PydanticMetaOverride. 
+        Notice that PydanticMetaOverride has priority over PydanticMeta.
+
+        :param attr: Attribute name
+
+        :return: Attribute value
+        """
         if meta_override:
+            # Get attribute from overrided class if exists, otherwise get from its default
+            # and, if not exists in its default, get from the default Tortoise PydanticMeta
             return getattr(meta_override, attr, getattr(meta, attr, getattr(PydanticMeta, attr)))
         return getattr(meta, attr, getattr(PydanticMeta, attr))
 
@@ -219,6 +228,8 @@ def pydantic_model_creator(
     _allow_cycles: bool = bool(get_param("allow_cycles") if allow_cycles is None else allow_cycles)
 
     # Update parameters with defaults
+    # NOTE: this should be done by sets operations to avoid duplicates.
+    #      But we need to keep the order of parameters.
     include = tuple(include) + default_include
     exclude = tuple(exclude) + default_exclude
     computed = tuple(computed) + default_computed
